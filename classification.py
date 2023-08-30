@@ -1,10 +1,15 @@
 import pandas as pd
+import numpy as np
 
 filename = 'https://github.com/lmassaron/datasets/releases/'
 filename += 'download/1.0/shakespeare_lines_in_plays.feather'
 shakespear = pd.read_feather(filename)
 
-from sklearn.feature_extraction import TfidfVectorizer
+# print(shakespear.head())
+# index = shakespear.play + ' act: ' + shakespear.act
+# print(index)
+
+from sklearn.feature_extraction.text import TfidfVectorizer
 vectorizer = TfidfVectorizer(max_df = 1.0, min_df = 3, stop_words = 'english')
 tfidf = vectorizer.fit_transform(shakespear.lines)
 
@@ -18,4 +23,14 @@ def print_topic_words(features, topics, top=5):
         words = " ".join([features[i] for i in topic.argsort()[:(-top):-1]])
         print(f"Topic #{idx:2.0f}: {words}")
 
-print_topic_words(vectorizer.get_feature_names(), nmf.components_)
+print_topic_words(vectorizer.get_feature_names_out(), nmf.components_)
+
+index = shakespear.play + ' act: ' + shakespear.act
+
+def find_top_match(model, data, index, topic_num=8):
+    topic_scores = model.transform(data)[:, topic_num]
+    best_score = np.argmax(topic_scores)
+    print(best_score)
+    print(index[best_score])
+
+find_top_match(nmf, tfidf, index)
