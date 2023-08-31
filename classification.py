@@ -10,7 +10,7 @@ shakespear = pd.read_feather(filename)
 # print(index)
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-vectorizer = TfidfVectorizer(max_df = 1.0, min_df = 3, stop_words = 'english')
+vectorizer = TfidfVectorizer(max_df = 1.0, min_df = 3.0, stop_words = 'english')
 tfidf = vectorizer.fit_transform(shakespear.lines)
 
 n_topics = 10

@@ -33,5 +33,5 @@ vect = text.CountVectorizer(tokenizer=tokenize)
 vec = vect.fit(vocab)
 
 sentence = vec.transform(vocab)
-print(sentence.toarray())
+# print(sentence.toarray())
 print(vec.get_feature_names_out())
