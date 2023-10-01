@@ -1,2 +1,2 @@
-# Natural Language Processing, Image Classification and Recommendation Systems.
-<p> A repo used to practice machine learning implementations in the areas of natural language processing, image classification and recommendation systems. </p>
+# I use this repository to store code for machine learning applications.
+<ul> <li>Sentiment Analysis </li> <li>Recommendation Systems </li> <li>Semantic Search</li> <li>Text Summarization</li></ul>
