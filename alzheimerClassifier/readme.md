@@ -29,7 +29,12 @@ python3 app.py
 cd front
 
 ```
+
+```
 npm install
+```
+
+```
 ```
 
 ```
