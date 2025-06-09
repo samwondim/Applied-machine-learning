@@ -2,18 +2,39 @@
 
 ### starting the python backend
 
-* python3 -m venv .env
+* ```bash
 
-* source .env/bin/activate
+python3 -m venv .env
 
-* pip install -r requirements.txt
+```
 
-* python3 app.py
+* ```bash
+source .env/bin/activate
+```
+
+* ```bash
+
+pip install -r requirements.txt
+
+```
+
+* ```bash
+python3 app.py
+```
 
 ### starting the web frontend
 
-* cd front
+* ```bash
 
-* npm install
+cd front
 
-* npm run dev
+```
+* ```bash
+npm install
+```
+
+* ```bash
+
+npm run dev
+
+```
