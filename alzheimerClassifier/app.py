@@ -79,10 +79,12 @@ def predict():
                 output = model(image)
                 probabilities = torch.nn.functional.softmax(output, dim=1)[0]
                 top_probs, top_indices = probabilities.topk(4)
+                print(probabilities.tolist())
                 predictions = [
                     {"label": class_names[idx], "confidence": prob.item()}
                     for idx, prob in zip(top_indices, top_probs)
                 ]
+            print("predictions", predictions)
             results.append(
                 {
                     "filename": file.filename,

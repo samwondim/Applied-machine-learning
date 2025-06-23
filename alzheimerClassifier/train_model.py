@@ -25,8 +25,7 @@ test = "Data/test.parquet"
 
 
 def load_training_data(train_path):
-    df_train = pd.read_parquet(train, engine="pyarrow")
-
+    df_train = pd.read_parquet(train_path, engine="pyarrow")
     df_train["img_arr"] = df_train["image"].apply(dict_to_image)
     df_train.drop("image", axis=1, inplace=True)
 
@@ -36,26 +35,30 @@ def load_training_data(train_path):
         2: "Non_Demented",
         3: "Very_Mild_Demented",
     }
-
     df_train["class_name"] = df_train["label"].map(label_mapping)
     train_df, val_df = train_test_split(
         df_train, test_size=0.2, stratify=df_train["class_name"], random_state=42
     )
 
-    train_df["img_arr"] = train_df["img_arr"].apply(lambda x: x / 255.0)
-    val_df["img_arr"] = val_df["img_arr"].apply(lambda x: x / 255.0)
+    # Scale to [0, 1] and ensure 128x128 size
+    def preprocess_image(img):
+        if img.shape != (128, 128):
+            img = cv2.resize(img, (128, 128))
+        return img / 255.0  # Scale to [0, 1]
+
+    train_df["img_arr"] = train_df["img_arr"].apply(preprocess_image)
+    val_df["img_arr"] = val_df["img_arr"].apply(preprocess_image)
 
     return train_df, val_df
 
 
 def prepare_data(train_df, val_df):
+    # Stack images (already scaled to [0, 1] and resized)
     x_train = (
         np.stack(train_df["img_arr"].values).reshape(-1, 128, 128, 1).astype(np.float32)
-        / 255.0
     )
     x_val = (
         np.stack(val_df["img_arr"].values).reshape(-1, 128, 128, 1).astype(np.float32)
-        / 255.0
     )
 
     y_train = train_df["label"].values
@@ -63,6 +66,13 @@ def prepare_data(train_df, val_df):
 
     x_train_tensor = torch.tensor(x_train).permute(0, 3, 1, 2)  # (N, 1, 128, 128)
     x_val_tensor = torch.tensor(x_val).permute(0, 3, 1, 2)
+
+    # Apply normalization to match prediction
+    mean = 0.5
+    std = 0.5
+    x_train_tensor = (x_train_tensor - mean) / std  # Normalize to [-1, 1]
+    x_val_tensor = (x_val_tensor - mean) / std
+
     y_train_tensor = torch.tensor(y_train, dtype=torch.long)
     y_val_tensor = torch.tensor(y_val, dtype=torch.long)
 
@@ -237,19 +247,32 @@ def precision_recall_f1(y_true, y_pred):
 
 def predict_on_test_data(test, model, device):
     df_test = pd.read_parquet(test, engine="pyarrow")
+    df_test["img_arr"] = df_test["image"].apply(dict_to_image)
+
+    # Preprocess test images
+    def preprocess_image(img):
+        if img.shape != (128, 128):
+            img = cv2.resize(img, (128, 128))
+        return img / 255.0
+
+    df_test["img_arr"] = df_test["img_arr"].apply(preprocess_image)
     X_test = (
         np.stack(df_test["img_arr"].values).reshape(-1, 128, 128, 1).astype(np.float32)
-        / 255.0
     )
     X_test_tensor = torch.tensor(X_test).permute(0, 3, 1, 2)
+
+    # Normalize test data
+    mean = 0.5
+    std = 0.5
+    X_test_tensor = (X_test_tensor - mean) / std
 
     test_dataset = torch.utils.data.TensorDataset(X_test_tensor)
     test_loader = torch.utils.data.DataLoader(
         test_dataset, batch_size=32, shuffle=False
     )
+
     model.eval()
     predictions = []
-
     with torch.no_grad():
         for (inputs,) in test_loader:
             inputs = inputs.to(device)
@@ -258,7 +281,6 @@ def predict_on_test_data(test, model, device):
             predictions.extend(preds.cpu().numpy())
 
     df_test["predicted_label"] = predictions
-
     label_mapping = {
         0: "Mild_Demented",
         1: "Moderate_Demented",
@@ -266,11 +288,10 @@ def predict_on_test_data(test, model, device):
         3: "Very_Mild_Demented",
     }
     df_test["predicted_class"] = df_test["predicted_label"].map(label_mapping)
-
     print(df_test[["predicted_label", "predicted_class"]].head())
 
 
 train_df, val_df = load_training_data(train)
-model, device, val_loader = train_model(train_df, val_df, num_epochs=1)
+model, device, val_loader = train_model(train_df, val_df, num_epochs=5)
 confusionMatrix(model, val_loader, device)
 # predict_on_test_data(test, model,device)
